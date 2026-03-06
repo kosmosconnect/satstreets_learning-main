@@ -6,6 +6,8 @@ import instructorRoutes from "./routes/instructorRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import certificateRoutes from "./routes/certificateRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import tpcrOutboxMiddleware from "./middleware/tpcrOutboxMiddleware.js";
+import { ensureTPCRLearningOutboxTable } from "./services/tpcrOutboxService.js";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -62,6 +64,7 @@ const limiter = rateLimit({
   message: { status: 0, message: 'Too many requests from this IP, please try again later.' }
 });
 app.use('/api/', limiter);
+app.use('/api/learning', tpcrOutboxMiddleware);
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -118,6 +121,9 @@ const startServer = async () => {
     const connection = await db.getConnection();
     console.log('✅ Database connected successfully');
     connection.release();
+
+    await ensureTPCRLearningOutboxTable();
+    console.log('✅ TPCR outbox table ready (learning)');
     
     app.listen(PORT, () => {
       console.log(`🚀 Satellite Streets Learning API running on port ${PORT}`);
